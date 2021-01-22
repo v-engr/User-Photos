@@ -17,7 +17,7 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
     
     var user: User?
     
-    private var albums = [Album]()
+//    private var albums = [Album]()
     private var photos = [Photo]()
 
     override func viewDidLoad() {
