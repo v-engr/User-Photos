@@ -67,7 +67,7 @@ class ImageCollectionViewCell: UICollectionViewCell {
     
     private var isConfigured = false
     
-    func configureView() {
+    func configureView(with font: UIFont) {
         layer.cornerRadius = 5
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.3
@@ -75,6 +75,8 @@ class ImageCollectionViewCell: UICollectionViewCell {
         layer.shadowRadius = 2
         
         contentView.layer.cornerRadius = 5
+        
+        titleLabel.font = font
         
         isConfigured = true
     }

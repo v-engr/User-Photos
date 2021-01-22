@@ -11,6 +11,8 @@ private let reuseIdentifier = "Cell"
 
 class PhotosViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
     
+    let labelFont = UIFont.systemFont(ofSize: 17)
+    
     var cache: NSCache<NSString, NSData>?
     
     var user: User?
@@ -98,6 +100,7 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
                                 // fill the cashe in bg
                                 if let photos = self?.photos {
                                     for photo in photos {
+                                        guard self != nil else {return}
                                         if let url = URL(string: photo.url), let data = try? Data(contentsOf: url) {
                                             self?.cache?.setObject(data as NSData, forKey: photo.url as NSString)
                                         }
@@ -132,7 +135,7 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath)
     
         if let imageCell = cell as? ImageCollectionViewCell {
-            imageCell.configureView()
+            imageCell.configureView(with: labelFont)
             imageCell.imageWidthConstraint.constant = width
             imageCell.cache = cache
             let photo = photos[indexPath.row]
@@ -158,7 +161,7 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
     private func labelHeightFor(indexPath: IndexPath) -> CGFloat {
         let maxSize = CGSize(width: width - labelPad * 2, height: CGFloat(MAXFLOAT))
         let text = (photos[indexPath.row].title) as NSString
-        let textHeight = text.boundingRect(with: maxSize, options: .usesLineFragmentOrigin, attributes: [.font: UIFont.systemFont(ofSize: 17)], context: nil).height
+        let textHeight = text.boundingRect(with: maxSize, options: .usesLineFragmentOrigin, attributes: [.font: labelFont], context: nil).height
         
         return textHeight
     }
