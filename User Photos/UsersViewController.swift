@@ -12,12 +12,16 @@ class UsersViewController: UITableViewController {
     
     private let cache = NSCache<NSString, NSData>()
     
-    var users = [User]()
+    private var users = [User]()
+    private var albums = [Album]()
+    private var photos = [Photo]()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         loadUsers()
+        loadAlbums()
+        loadPhotos()
     }
 
     private func loadUsers() {
@@ -54,6 +58,78 @@ class UsersViewController: UITableViewController {
         
     }
     
+    private func loadAlbums() {
+        
+        let url = URL(string: "https://jsonplaceholder.typicode.com/albums")!
+        let request = URLRequest(url: url)
+        
+        let session = URLSession.shared
+        let task = session.dataTask(with: request) {
+                (data, response, error) -> Void in
+
+            let httpResponse = response as! HTTPURLResponse
+            let statusCode = httpResponse.statusCode
+
+            if (statusCode == 200) {
+
+                if let data = data  {
+                    let decoder = JSONDecoder()
+                    if let albums = try? decoder.decode(Albums.self, from: data) {
+                        self.albums = albums
+                        print("Albums LOADING FINISHED")
+                    } else {
+                        print("Albums JSON decoding failed")
+                    }
+                }
+            } else  {
+                print("Loading from Albums url Failed")
+            }
+        }
+        task.resume()
+    }
+    
+    private func loadPhotos() {
+        let url = URL(string: "https://jsonplaceholder.typicode.com/photos")!
+        let request = URLRequest(url: url)
+        
+        let session = URLSession.shared
+        let task = session.dataTask(with: request) { [weak self]
+                (data, response, error) -> Void in
+
+            let httpResponse = response as! HTTPURLResponse
+            let statusCode = httpResponse.statusCode
+
+            if (statusCode == 200) {
+
+                if let data = data  {
+                    let decoder = JSONDecoder()
+                    if let allPhotos = try? decoder.decode(Photos.self, from: data) {
+                        self?.photos = allPhotos
+                        print("Photos LOADING FINISHED")
+                        
+                        // fill the cashe in bg
+                        DispatchQueue.global(qos: .default).async { [weak self] in
+                            if let photos = self?.photos {
+                                for photo in photos {
+                                    guard self != nil else {return}
+                                    if let url = URL(string: photo.thumbnailURL), let data = try? Data(contentsOf: url) {
+                                        self?.cache.setObject(data as NSData, forKey: photo.thumbnailURL as NSString)
+                                    }
+                                }
+                            }
+                        }
+                        
+                    } else {
+                        print("Photos JSON decoding failed")
+                    }
+                }
+            } else  {
+                print("Loading from Photos url Failed")
+            }
+        }
+        task.resume()
+    }
+    
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
@@ -77,8 +153,8 @@ class UsersViewController: UITableViewController {
             
             photoVC.user = users[indexPath.row]
             photoVC.cache = cache
-//            photoVC.userIndex = indexPath.row
-//            photoVC.users = users
+            photoVC.albums = albums
+            photoVC.photos = photos
         }
     }
 }

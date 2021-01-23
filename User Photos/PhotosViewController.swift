@@ -11,14 +11,14 @@ private let reuseIdentifier = "Cell"
 
 class PhotosViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
     
-    let labelFont = UIFont.systemFont(ofSize: 17)
+    private let labelFont = UIFont.systemFont(ofSize: 17)
     
     var cache: NSCache<NSString, NSData>?
-    
     var user: User?
+    var albums = [Album]()
+    var photos = [Photo]()
     
-//    private var albums = [Album]()
-    private var photos = [Photo]()
+    private var userPhotos = [Photo]()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,93 +31,51 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
             }
             
         }
-        loadAlbums()
+        loadUserAlbums()
 
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        if previousCollectionViewWidth != collectionView.frame.width {
+            collectionView.reloadData()
+            previousCollectionViewWidth = collectionView.frame.width
+        }
     }
     
     // MARK: - Loading Data
     
-    private func loadAlbums() {
+    private func loadUserAlbums() {
         guard let user = self.user else {return}
         
-        let url = URL(string: "https://jsonplaceholder.typicode.com/albums")!
-        let request = URLRequest(url: url)
-        
-        let session = URLSession.shared
-        let task = session.dataTask(with: request) {
-                (data, response, error) -> Void in
-
-            let httpResponse = response as! HTTPURLResponse
-            let statusCode = httpResponse.statusCode
-
-            if (statusCode == 200) {
-
-                if let data = data  {
-                    let decoder = JSONDecoder()
-                    if let albums = try? decoder.decode(Albums.self, from: data) {
-                        var userAlbumIDs = Set<Int>()
-                        for album in albums {
-                            if album.userID == user.id {
-                                userAlbumIDs.insert(album.id)
-                            }
-                        }
-                        self.loadPhotos(for: userAlbumIDs)
-                    } else {
-                        print("Albums JSON decoding failed")
-                    }
-                }
-            } else  {
-                print("Loading from Albums url Failed")
+        var userAlbumIDs = Set<Int>()
+        for album in albums {
+            if album.userID == user.id {
+                userAlbumIDs.insert(album.id)
             }
         }
-        task.resume()
+        loadPhotos(for: userAlbumIDs)
     }
     
     private func loadPhotos(for albumIDs: Set<Int>) {
-        let url = URL(string: "https://jsonplaceholder.typicode.com/photos")!
-        let request = URLRequest(url: url)
         
-        let session = URLSession.shared
-        let task = session.dataTask(with: request) { [weak self]
-                (data, response, error) -> Void in
-
-            let httpResponse = response as! HTTPURLResponse
-            let statusCode = httpResponse.statusCode
-
-            if (statusCode == 200) {
-
-                if let data = data  {
-                    let decoder = JSONDecoder()
-                    if let allPhotos = try? decoder.decode(Photos.self, from: data) {
-                        for photo in allPhotos {
-                            if albumIDs.contains(photo.albumID)  {
-                                self?.photos.append(photo)
-                            }
-                        }
-                        DispatchQueue.main.async {
-                            self?.collectionView.reloadData()
-                            DispatchQueue.global(qos: .default).async { [weak self] in
-                                // fill the cashe in bg
-                                if let photos = self?.photos {
-                                    for photo in photos {
-                                        guard self != nil else {return}
-                                        if let url = URL(string: photo.url), let data = try? Data(contentsOf: url) {
-                                            self?.cache?.setObject(data as NSData, forKey: photo.url as NSString)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                    } else {
-                        print("Photos JSON decoding failed")
-                    }
-                }
-            } else  {
-                print("Loading from Photos url Failed")
+        for photo in photos {
+            if albumIDs.contains(photo.albumID)  {
+                userPhotos.append(photo)
             }
         }
-        task.resume()
+        collectionView.reloadData()
+        DispatchQueue.global(qos: .default).async { [weak self] in
+            // fill the cashe in bg
+            if let photos = self?.userPhotos {
+                for photo in photos {
+                    guard self != nil else {return}
+                    if let url = URL(string: photo.url), let data = try? Data(contentsOf: url) {
+                        self?.cache?.setObject(data as NSData, forKey: photo.url as NSString)
+                    }
+                }
+            }
+        }
     }
     
     // MARK: UICollectionViewDataSource
@@ -128,7 +86,7 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
 
 
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return photos.count
+        return userPhotos.count
     }
 
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -138,7 +96,7 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
             imageCell.configureView(with: labelFont)
             imageCell.imageWidthConstraint.constant = width
             imageCell.cache = cache
-            let photo = photos[indexPath.row]
+            let photo = userPhotos[indexPath.row]
             imageCell.photo = photo
         }
     
@@ -147,20 +105,22 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
     
     // MARK: - UICollectionViewDelegateFlowLayout helpers
     
-    let pad: CGFloat = 16
-    let labelPad: CGFloat = 8
-    var width: CGFloat {
-        if traitCollection.horizontalSizeClass == .compact {
-            return view.frame.size.width - pad * 2
-        } else {
+    private var previousCollectionViewWidth: CGFloat = 0
+    private let pad: CGFloat = 16
+    private let labelPad: CGFloat = 8
+    private var width: CGFloat {
+        if collectionView.frame.width > 900 {
+            return (view.frame.size.width - pad * 4) / 3
+        } else if collectionView.frame.width > 600 {
             return (view.frame.size.width - pad * 3) / 2
         }
+        return view.frame.size.width - pad * 2
         
     }
     
     private func labelHeightFor(indexPath: IndexPath) -> CGFloat {
         let maxSize = CGSize(width: width - labelPad * 2, height: CGFloat(MAXFLOAT))
-        let text = (photos[indexPath.row].title) as NSString
+        let text = (userPhotos[indexPath.row].title) as NSString
         let textHeight = text.boundingRect(with: maxSize, options: .usesLineFragmentOrigin, attributes: [.font: labelFont], context: nil).height
         
         return textHeight

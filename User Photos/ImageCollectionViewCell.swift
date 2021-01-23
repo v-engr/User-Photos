@@ -27,7 +27,7 @@ class ImageCollectionViewCell: UICollectionViewCell {
         guard let photo = self.photo else {return}
         imageView.image = nil
         spinner.isHidden = false
-        spinner.stopAnimating()
+        spinner.startAnimating()
         
         if let cachedData = cache?.object(forKey: photo.url as NSString),
            let image = UIImage(data: cachedData as Data) {
@@ -36,17 +36,10 @@ class ImageCollectionViewCell: UICollectionViewCell {
             spinner.isHidden = true
             
         } else {
-            
-            DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                // trying to get a thumb in a quick way
-                if let url = URL(string: photo.thumbnailURL), let data = try? Data(contentsOf: url) {
-                    if let image = UIImage(data: data), photo.id == self?.photo?.id {
-                        DispatchQueue.main.async {
-                            if self?.imageView.image == nil {
-                                self?.imageView.image = image
-                            }
-                        }
-                    }
+            if let cachedData = cache?.object(forKey: photo.thumbnailURL as NSString),
+               let image = UIImage(data: cachedData as Data) {
+                if imageView.image == nil {
+                    imageView.image = image
                 }
             }
             DispatchQueue.global(qos: .userInteractive).async { [weak self] in
