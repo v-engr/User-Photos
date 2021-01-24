@@ -80,7 +80,7 @@
                                             </constraints>
                                         </imageView>
                                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" verticalHuggingPriority="251" horizontalCompressionResistancePriority="250" text="Label" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="s4u-dG-0jx">
-                                            <rect key="frame" x="8" y="387" width="363" height="20.5"/>
+                                            <rect key="frame" x="8" y="387" width="41.5" height="20.5"/>
                                             <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                             <nil key="textColor"/>
                                             <nil key="highlightedColor"/>
@@ -95,7 +95,7 @@
                                         <constraint firstItem="8o5-v3-82S" firstAttribute="centerY" secondItem="4GY-vp-NfY" secondAttribute="centerY" id="Kpl-YW-b74"/>
                                         <constraint firstItem="8o5-v3-82S" firstAttribute="centerX" secondItem="4GY-vp-NfY" secondAttribute="centerX" id="V3k-2q-gQY"/>
                                         <constraint firstItem="s4u-dG-0jx" firstAttribute="leading" secondItem="oew-bU-tbO" secondAttribute="leading" constant="8" id="bzr-xs-6gJ"/>
-                                        <constraint firstAttribute="trailing" secondItem="s4u-dG-0jx" secondAttribute="trailing" constant="8" id="gY3-sz-sil"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="s4u-dG-0jx" secondAttribute="trailing" constant="8" id="gY3-sz-sil"/>
                                         <constraint firstItem="s4u-dG-0jx" firstAttribute="top" secondItem="4GY-vp-NfY" secondAttribute="bottom" constant="8" id="mp4-z7-w0j"/>
                                         <constraint firstItem="4GY-vp-NfY" firstAttribute="leading" secondItem="oew-bU-tbO" secondAttribute="leading" id="vsn-Xm-Hdy"/>
                                     </constraints>

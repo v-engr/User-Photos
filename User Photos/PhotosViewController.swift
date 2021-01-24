@@ -9,19 +9,30 @@ import UIKit
 
 private let reuseIdentifier = "Cell"
 
-class PhotosViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
+class PhotosViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout, ModelDelegate {
     
     private let labelFont = UIFont.systemFont(ofSize: 17)
     
-    var cache: NSCache<NSString, NSData>?
-    var user: User?
-    var albums = [Album]()
-    var photos = [Photo]()
+    private var user: User? {
+        if let users = model?.users, selectedUserIndex >= 0, selectedUserIndex < users.count {
+            return users[selectedUserIndex]
+        }
+        return nil
+    }
     
+    var selectedUserIndex = 0
+    var model: Model? {
+        didSet {
+            modelIsFullyLoaded = model?.isFullyLoaded ?? false
+        }
+    }
+    private var modelIsFullyLoaded = false
     private var userPhotos = [Photo]()
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        model?.delegate = self
         
         if let components = user?.name.components(separatedBy: " "), let name = components.first {
             if name != "Mrs." && name != "Mr." {
@@ -46,10 +57,11 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
     // MARK: - Loading Data
     
     private func loadUserAlbums() {
+        guard let model = self.model else {return}
         guard let user = self.user else {return}
         
         var userAlbumIDs = Set<Int>()
-        for album in albums {
+        for album in model.albums {
             if album.userID == user.id {
                 userAlbumIDs.insert(album.id)
             }
@@ -58,8 +70,9 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
     }
     
     private func loadPhotos(for albumIDs: Set<Int>) {
-        
-        for photo in photos {
+        guard let model = self.model else {return}
+        userPhotos.removeAll()
+        for photo in model.photos {
             if albumIDs.contains(photo.albumID)  {
                 userPhotos.append(photo)
             }
@@ -69,9 +82,10 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
             // fill the cashe in bg
             if let photos = self?.userPhotos {
                 for photo in photos {
-                    guard self != nil else {return}
-                    if let url = URL(string: photo.url), let data = try? Data(contentsOf: url) {
-                        self?.cache?.setObject(data as NSData, forKey: photo.url as NSString)
+                    if let url = URL(string: photo.url),
+                       model.cache.object(forKey: photo.url as NSString) == nil,
+                       let data = try? Data(contentsOf: url) {
+                        model.cache.setObject(data as NSData, forKey: photo.url as NSString)
                     }
                 }
             }
@@ -95,11 +109,10 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
         if let imageCell = cell as? ImageCollectionViewCell {
             imageCell.configureView(with: labelFont)
             imageCell.imageWidthConstraint.constant = width
-            imageCell.cache = cache
+            imageCell.cache = model?.cache
             let photo = userPhotos[indexPath.row]
             imageCell.photo = photo
         }
-    
         return cell
     }
     
@@ -139,6 +152,18 @@ class PhotosViewController: UICollectionViewController, UICollectionViewDelegate
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
         return UIEdgeInsets(top: pad, left: pad, bottom: pad, right: pad)
+    }
+    
+    // MARK: - ModelDelegate
+    
+    func modelDidFullLoad() {
+        if !modelIsFullyLoaded {
+            modelIsFullyLoaded = true
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.loadUserAlbums()
+            }
+        }
     }
 
 }
